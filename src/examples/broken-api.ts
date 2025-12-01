@@ -1,5 +1,5 @@
 // BROKEN: API endpoint with security and performance issues
-export async function GET(request) {
+/*export async function GET(request) {
   // BUG: No auth check
   // BUG: No error handling
   // BUG: SQL injection vulnerability
@@ -11,4 +11,4 @@ export async function GET(request) {
   
   // BUG: Exposing sensitive data
   return Response.json(result.rows)
-}
+} */

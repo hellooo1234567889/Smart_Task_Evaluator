@@ -1,4 +1,4 @@
-// BROKEN: Inefficient algorithm
+/* BROKEN: Inefficient algorithm
 function findDuplicates(arr) {
   const duplicates = []
   
@@ -12,4 +12,4 @@ function findDuplicates(arr) {
   }
   
   return duplicates
-}
+}*/

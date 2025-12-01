@@ -1,5 +1,5 @@
 // BROKEN: This component has multiple issues
-import { useState } from 'react'
+/*import { useState } from 'react'
 
 export default function BrokenCounter() {
   const [count, setCount] = useState(0)
@@ -20,4 +20,4 @@ export default function BrokenCounter() {
       <button onclick={handleClick}>Increment</button>
     </div>
   )
-}
+}*/
