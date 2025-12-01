@@ -7,12 +7,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia',
 })
 
-
-
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies()
-    
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -43,7 +41,10 @@ export async function POST(request: NextRequest) {
     const { evaluationId } = await request.json()
 
     if (!evaluationId) {
-      return NextResponse.json({ error: 'Evaluation ID required' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Evaluation ID required' },
+        { status: 400 }
+      )
     }
 
     // Verify evaluation exists and isn't already paid
@@ -55,11 +56,17 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (evalError || !evaluation) {
-      return NextResponse.json({ error: 'Evaluation not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Evaluation not found' },
+        { status: 404 }
+      )
     }
 
     if (evaluation.is_paid) {
-      return NextResponse.json({ error: 'Report already unlocked' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Report already unlocked' },
+        { status: 400 }
+      )
     }
 
     // Create payment record
@@ -76,8 +83,26 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (paymentError) {
-      return NextResponse.json({ error: 'Failed to create payment' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'Failed to create payment' },
+        { status: 500 }
+      )
     }
+
+    // ---- DEBUG URLS HERE ----
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+    console.log('BASE_URL_FOR_STRIPE', baseUrl)
+
+    if (!baseUrl) {
+      throw new Error('NEXT_PUBLIC_APP_URL is not set')
+    }
+
+    const successUrl = `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&evaluation_id=${evaluationId}`
+    const cancelUrl = `${baseUrl}/dashboard/task/${evaluation.task_id}`
+
+    console.log('STRIPE_SUCCESS_URL', successUrl)
+    console.log('STRIPE_CANCEL_URL', cancelUrl)
+    // -------------------------
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
@@ -96,8 +121,8 @@ export async function POST(request: NextRequest) {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}&evaluation_id=${evaluationId}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/task/${evaluation.task_id}`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         payment_id: payment.id,
         evaluation_id: evaluationId,
