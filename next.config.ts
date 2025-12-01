@@ -1,3 +1,10 @@
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+};
+
+export default nextConfig;
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
@@ -34,14 +41,6 @@ const nextConfig: NextConfig = {
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
         ],
-      },
-    ]
-  },
-  async rewrites() {
-    return [
-      {
-        source: '/(.*)',
-        destination: '/index.html',
       },
     ]
   },
