@@ -1,6 +1,6 @@
 // BROKEN: Inefficient algorithm
 function findDuplicates(arr) {
-  let duplicates = []
+  const duplicates = []
   
   // BUG: O(n²) complexity - very slow for large arrays
   for (let i = 0; i < arr.length; i++) {

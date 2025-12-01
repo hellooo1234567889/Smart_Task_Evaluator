@@ -1,15 +1,20 @@
 'use client'
 
-import { useEffect, useState, use} from 'react'
+import { useEffect, useState, use } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { toast } from 'sonner'
 import { ArrowLeft, Lock, CheckCircle, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { loadStripe } from '@stripe/stripe-js'
-
 
 interface Evaluation {
   id: string
@@ -20,9 +25,13 @@ interface Evaluation {
   is_paid: boolean
 }
 
-export default function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function TaskDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
   const { id } = use(params)
-  
+
   const [task, setTask] = useState<any>(null)
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null)
   const [loading, setLoading] = useState(true)
@@ -37,28 +46,28 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
 
   useEffect(() => {
     fetchTaskDetails()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchTaskDetails = async () => {
     const { data: taskData } = await supabase
       .from('tasks')
       .select('*')
-      .eq('id', id) // Now using unwrapped id
+      .eq('id', id)
       .single()
 
-      const { data: evalData } = await supabase
+    const { data: evalData } = await supabase
       .from('evaluations')
       .select('*')
-      .eq('task_id', id) // Now using unwrapped id
+      .eq('task_id', id)
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
 
-     setTask(taskData)
+    setTask(taskData)
     setEvaluation(evalData)
     setLoading(false)
   }
-
 
   const runEvaluation = async () => {
     if (!task) return
@@ -91,43 +100,53 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   const handlePayment = async () => {
-  if (!evaluation) return
-  
-  try {
-    setPaymentLoading(true)
-    
-    const response = await fetch('/api/create-checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ evaluationId: evaluation.id }),
-    })
+    if (!evaluation) return
 
-    const data = await response.json()
-    
-    if (data.error) throw new Error(data.error)
+    try {
+      setPaymentLoading(true)
 
-    // Redirect to Stripe Checkout
-    const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
-    const { error } = await stripe!.redirectToCheckout({
-      sessionId: data.sessionId,
-    })
+      const response = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ evaluationId: evaluation.id }),
+      })
 
-    if (error) throw error
-  } catch (error: any) {
-    toast.error(error.message)
-    setPaymentLoading(false)
+      const data = await response.json()
+
+      if (data.error) throw new Error(data.error)
+
+      const stripe = await loadStripe(
+        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
+      )
+      const { error } = await stripe!.redirectToCheckout({
+        sessionId: data.sessionId,
+      })
+
+      if (error) throw error
+    } catch (error: any) {
+      toast.error(error.message)
+      setPaymentLoading(false)
+    }
   }
-}
 
-
-  if (loading) return <div className="p-8">Loading...</div>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(circle_at_top,#4f46e5_0,transparent_55%),radial-gradient(circle_at_bottom,#0ea5e9_0,transparent_55%),#020617]">
+        <p className="text-sm text-slate-100/80">Loading...</p>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#4f46e5_0,transparent_55%),radial-gradient(circle_at_bottom,#0ea5e9_0,transparent_55%),#020617]">
+      {/* Glass nav */}
+      <nav className="sticky top-0 z-20 border-b border-white/15 bg-white/5 backdrop-blur">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center">
           <Link href="/dashboard">
-            <Button variant="ghost">
+            <Button
+              variant="ghost"
+              className="text-slate-100 hover:bg-white/10"
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Dashboard
             </Button>
@@ -138,19 +157,23 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Task Code */}
-          <Card>
+          <Card className="bg-white/8 border border-white/20 backdrop-blur rounded-2xl text-slate-50 shadow-xl">
             <CardHeader>
-              <CardTitle>{task?.title}</CardTitle>
-              <CardDescription>{task?.description}</CardDescription>
+              <CardTitle className="text-lg font-semibold">
+                {task?.title}
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-200/80">
+                {task?.description}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
-                <pre className="text-gray-100 text-sm">
+              <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-4 overflow-x-auto">
+                <pre className="text-slate-100 text-xs sm:text-sm">
                   <code className="whitespace-pre-wrap">{task?.code}</code>
                 </pre>
               </div>
               <div className="mt-4 flex gap-2">
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                <span className="px-3 py-1 bg-cyan-400/15 text-cyan-200 rounded-full text-xs border border-cyan-300/30">
                   {task?.language}
                 </span>
               </div>
@@ -160,14 +183,20 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
           {/* Evaluation Results */}
           <div className="space-y-4">
             {!evaluation ? (
-              <Card>
+              <Card className="bg-white/8 border border-white/20 backdrop-blur rounded-2xl text-slate-50 shadow-xl">
                 <CardContent className="py-12 text-center">
-                  <AlertCircle className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No Evaluation Yet</h3>
-                  <p className="text-gray-600 mb-6">
-                    Run AI evaluation to get detailed feedback
+                  <AlertCircle className="w-14 h-14 mx-auto text-slate-300 mb-4" />
+                  <h3 className="text-lg font-medium mb-2">
+                    No Evaluation Yet
+                  </h3>
+                  <p className="text-sm text-slate-300 mb-6">
+                    Run AI evaluation to get detailed feedback on your code.
                   </p>
-                  <Button onClick={runEvaluation} disabled={evaluating}>
+                  <Button
+                    onClick={runEvaluation}
+                    disabled={evaluating}
+                    className="rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400 border-0"
+                  >
                     {evaluating ? 'Evaluating...' : 'Run Evaluation'}
                   </Button>
                 </CardContent>
@@ -175,69 +204,89 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
             ) : (
               <>
                 {/* Score Card */}
-                <Card>
+                <Card className="bg-white/8 border border-white/20 backdrop-blur rounded-2xl text-slate-50 shadow-xl">
                   <CardHeader>
-                    <CardTitle>AI Evaluation Score</CardTitle>
+                    <CardTitle className="text-sm font-semibold">
+                      AI Evaluation Score
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-center">
-                      <div className="text-6xl font-bold text-blue-600">
+                      <div className="text-5xl font-bold text-cyan-300">
                         {evaluation.score}
                       </div>
-                      <p className="text-gray-600 mt-2">out of 100</p>
+                      <p className="text-xs text-slate-200 mt-2">
+                        out of 100
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Free Preview */}
-                <Card>
+                <Card className="bg-white/8 border border-white/20 backdrop-blur rounded-2xl text-slate-50 shadow-xl">
                   <CardHeader>
-                    <CardTitle>Quick Feedback</CardTitle>
+                    <CardTitle className="text-sm font-semibold">
+                      Quick Feedback
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <h4 className="font-medium text-green-700 mb-2 flex items-center">
+                      <h4 className="font-medium text-emerald-200 mb-1.5 flex items-center text-sm">
                         <CheckCircle className="w-4 h-4 mr-2" />
                         Strengths
                       </h4>
-                      <p className="text-sm text-gray-700">{evaluation.strengths}</p>
+                      <p className="text-xs text-slate-100/90">
+                        {evaluation.strengths}
+                      </p>
                     </div>
                     <div>
-                      <h4 className="font-medium text-orange-700 mb-2 flex items-center">
+                      <h4 className="font-medium text-amber-200 mb-1.5 flex items-center text-sm">
                         <AlertCircle className="w-4 h-4 mr-2" />
                         Areas for Improvement
                       </h4>
-                      <p className="text-sm text-gray-700">{evaluation.improvements}</p>
+                      <p className="text-xs text-slate-100/90">
+                        {evaluation.improvements}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Full Report (Locked/Unlocked) */}
-                <Card>
+                <Card className="bg-white/8 border border-white/20 backdrop-blur rounded-2xl text-slate-50 shadow-xl">
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
+                    <CardTitle className="flex items-center justify-between text-sm font-semibold">
                       Full Detailed Report
                       {!evaluation.is_paid && (
-                        <Lock className="w-5 h-5 text-gray-400" />
+                        <Lock className="w-5 h-5 text-slate-300" />
                       )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {evaluation.is_paid ? (
-                      <div className="prose prose-sm max-w-none">
-                        <p className="whitespace-pre-wrap text-sm">{evaluation.full_report}</p>
+                      <div className="prose prose-sm max-w-none prose-invert">
+                        <p className="whitespace-pre-wrap text-xs sm:text-sm text-slate-50">
+                          {evaluation.full_report}
+                        </p>
                       </div>
                     ) : (
                       <div className="text-center py-8">
-                        <Lock className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                        <h3 className="font-medium mb-2">Unlock Full Report</h3>
-                        <p className="text-sm text-gray-600 mb-6">
-                          Get detailed analysis, code quality metrics, best practices review, and actionable recommendations
+                        <Lock className="w-12 h-12 mx-auto text-slate-300 mb-4" />
+                        <h3 className="font-medium mb-2">
+                          Unlock Full Report
+                        </h3>
+                        <p className="text-xs text-slate-200/90 mb-5 max-w-sm mx-auto">
+                          Get detailed analysis, code quality metrics, best
+                          practices review, and actionable recommendations.
                         </p>
-                        <Button onClick={handlePayment} disabled={paymentLoading}>
-                            {paymentLoading ? 'Loading...' : 'Unlock for $4.99'}
+                        <Button
+                          onClick={handlePayment}
+                          disabled={paymentLoading}
+                          className="rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400 border-0"
+                        >
+                          {paymentLoading
+                            ? 'Loading...'
+                            : 'Unlock for $4.99'}
                         </Button>
-
                       </div>
                     )}
                   </CardContent>
