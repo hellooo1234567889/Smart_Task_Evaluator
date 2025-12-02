@@ -70,15 +70,29 @@ Code:
 ${code}
 \`\`\`
 
-Provide a detailed evaluation in the following JSON format:
+Return Only a JSON object with this exact structutre (no extra keys, no markdown):
+
+
 {
-  "score": <number between 0-100>,
+  "score": <number between 0 and 100>,
   "strengths": "<brief summary of strengths in 2-3 sentences>",
   "improvements": "<brief suggestions for improvement in 2-3 sentences>",
-  "full_report": "<detailed analysis including code quality, best practices, performance, readability, security considerations, and specific recommendations with code examples>"
-}
+  "full_report": {
+      "code_quality": "<2-3 sentences,  
+      "best_practices": "<2-3 sentences,
+      "performance": "<2-3 sentences,
+      "readability": "<2-3 sentences,
+      "security_considerations": "<2-3 sentences,
+      "recommendations": {
+      "improved_function_explanation": "<1-2 sentences explaning the improved version >", 
+      "improved_function_code": "<JUST the improved function code block , no backticks>",
+      "informative_feedback_explanation": "<1-2 sentences explaining how to give richer feedback >",
+      "informative_feedback_code": "<JUST the example function code block , no backticks>"
+      }
+  }
+  
 
-Be constructive, specific, and actionable in your feedback.`
+Be constructive, specific, and actionable in your feedback. DO NOT wrap the JSON in backticks or any markdown.`;
 
     let chatCompletion
     try {
@@ -111,7 +125,8 @@ Be constructive, specific, and actionable in your feedback.`
       typeof evaluation.score !== 'number' ||
       !evaluation.strengths ||
       !evaluation.improvements ||
-      !evaluation.full_report
+      !evaluation.full_report ||
+      typeof evaluation.full_report !== 'object'
     ) {
       throw new Error('Invalid AI response format')
     }
@@ -125,7 +140,7 @@ Be constructive, specific, and actionable in your feedback.`
         score: Math.min(100, Math.max(0, evaluation.score)),
         strengths: evaluation.strengths,
         improvements: evaluation.improvements,
-        full_report: evaluation.full_report,
+        full_report: JSON.stringify(evaluation.full_report),
         is_paid: false,
       })
       .select()

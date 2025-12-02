@@ -2,19 +2,25 @@
 
 import React from 'react'
 
+interface Recommendations {
+  improved_function_explanation?: string
+  improved_function_code?: string
+  informative_feedback_explanation?: string
+  informative_feedback_code?: string
+}
+
 interface ReportData {
   code_quality?: string
   best_practices?: string
   performance?: string
   readability?: string
   security_considerations?: string
-  recommendations?: {
-    improved_function?: string
-    informative_feedback?: string
-  }
+  recommendations?: Recommendations
 }
 
 function CodeBlock({ code }: { code: string }) {
+  if (!code) return null
+
   return (
     <div className="bg-[#020617] border border-slate-700/60 rounded-xl p-4 my-3 shadow-lg">
       <pre className="overflow-x-auto">
@@ -26,29 +32,17 @@ function CodeBlock({ code }: { code: string }) {
   )
 }
 
-function Section({
-  title,
-  text,
-  showAsCode = false,
-}: {
-  title: string
-  text: string
-  showAsCode?: boolean
-}) {
+function TextSection({ title, text }: { title: string; text?: string }) {
   if (!text) return null
 
   return (
-    <div className="mb-6">
+    <div className="mb-4">
       <h3 className="text-base font-semibold text-cyan-300 mb-2">
         {title}
       </h3>
-      {showAsCode ? (
-        <CodeBlock code={text} />
-      ) : (
-        <p className="text-sm text-slate-100/90 leading-relaxed">
-          {text}
-        </p>
-      )}
+      <p className="text-sm text-slate-100/90 leading-relaxed">
+        {text}
+      </p>
     </div>
   )
 }
@@ -69,49 +63,51 @@ export function ReportFormatter({ jsonReport }: { jsonReport: string }) {
 
   return (
     <div className="space-y-4">
-      {data.code_quality && (
-        <Section title="Code Quality" text={data.code_quality} />
-      )}
-
-      {data.best_practices && (
-        <Section title="Best Practices" text={data.best_practices} />
-      )}
-
-      {data.performance && (
-        <Section title="Performance" text={data.performance} />
-      )}
-
-      {data.readability && (
-        <Section title="Readability" text={data.readability} />
-      )}
-
-      {data.security_considerations && (
-        <Section
-          title="Security Considerations"
-          text={data.security_considerations}
-        />
-      )}
+      <TextSection title="Code Quality" text={data.code_quality} />
+      <TextSection title="Best Practices" text={data.best_practices} />
+      <TextSection title="Performance" text={data.performance} />
+      <TextSection title="Readability" text={data.readability} />
+      <TextSection
+        title="Security Considerations"
+        text={data.security_considerations}
+      />
 
       {data.recommendations && (
-        <div className="mt-4">
-          <h3 className="text-lg font-semibold text-cyan-300 mb-3">
+        <div className="mt-4 space-y-4">
+          <h3 className="text-lg font-semibold text-cyan-300">
             Recommendations
           </h3>
 
-          {data.recommendations.improved_function && (
-            <>
+          {(data.recommendations.improved_function_explanation ||
+            data.recommendations.improved_function_code) && (
+            <div className="mt-1">
               <p className="text-sm text-slate-100/90 font-medium mb-1">
                 Improved Function
               </p>
-              <CodeBlock code={data.recommendations.improved_function} />
-            </>
+              <TextSection
+                title=""
+                text={data.recommendations.improved_function_explanation}
+              />
+              <CodeBlock
+                code={data.recommendations.improved_function_code || ''}
+              />
+            </div>
           )}
 
-          {data.recommendations.informative_feedback && (
-            <Section
-              title="Informative Feedback"
-              text={data.recommendations.informative_feedback}
-            />
+          {(data.recommendations.informative_feedback_explanation ||
+            data.recommendations.informative_feedback_code) && (
+            <div className="mt-2">
+              <p className="text-sm text-slate-100/90 font-medium mb-1">
+                Informative Feedback
+              </p>
+              <TextSection
+                title=""
+                text={data.recommendations.informative_feedback_explanation}
+              />
+              <CodeBlock
+                code={data.recommendations.informative_feedback_code || ''}
+              />
+            </div>
           )}
         </div>
       )}
