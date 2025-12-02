@@ -24,6 +24,7 @@ export function ReportFormatter({ jsonReport }: { jsonReport: string }) {
   }
 
   const extractCodeBlock = (text: string) => {
+    // Updated regex to handle code blocks with or without newline after opening backticks
     const codeMatch = text.match(/``````/)
     if (codeMatch) {
       return {
@@ -41,19 +42,27 @@ export function ReportFormatter({ jsonReport }: { jsonReport: string }) {
     
     return (
       <div key={title} className="mb-6">
-        <h3 className="text-lg font-semibold text-cyan-300 mb-2">{title}</h3>
+        <h3 className="text-base font-semibold text-cyan-300 mb-2">{title}</h3>
         {codeBlock ? (
           <>
-            <p className="text-sm text-slate-100/90 mb-3">{codeBlock.before}</p>
+            {codeBlock.before && (
+              <p className="text-sm text-slate-100/90 mb-3 leading-relaxed">
+                {codeBlock.before.trim()}
+              </p>
+            )}
             <pre className="bg-slate-950/70 border border-slate-800 rounded-lg p-4 overflow-x-auto mb-3">
-              <code className="text-xs text-slate-100">{codeBlock.code}</code>
+              <code className="text-xs sm:text-sm text-slate-100 font-mono">
+                {codeBlock.code}
+              </code>
             </pre>
-            {codeBlock.after && (
-              <p className="text-sm text-slate-100/90">{codeBlock.after}</p>
+            {codeBlock.after && codeBlock.after.trim() && (
+              <p className="text-sm text-slate-100/90 leading-relaxed">
+                {codeBlock.after.trim()}
+              </p>
             )}
           </>
         ) : (
-          <p className="text-sm text-slate-100/90">{content}</p>
+          <p className="text-sm text-slate-100/90 leading-relaxed">{content}</p>
         )}
       </div>
     )
@@ -68,12 +77,14 @@ export function ReportFormatter({ jsonReport }: { jsonReport: string }) {
       {reportData.security_considerations && renderSection('Security Considerations', reportData.security_considerations)}
       
       {reportData.recommendations && (
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-cyan-300 mb-4">Recommendations</h3>
-          {reportData.recommendations.improved_function && 
-            renderSection('Improved Function', reportData.recommendations.improved_function)}
-          {reportData.recommendations.informative_feedback && 
-            renderSection('Informative Feedback', reportData.recommendations.informative_feedback)}
+        <div className="mt-6">
+          <h3 className="text-base font-semibold text-cyan-300 mb-4">Recommendations</h3>
+          <div className="space-y-6 pl-2">
+            {reportData.recommendations.improved_function && 
+              renderSection('Improved Function', reportData.recommendations.improved_function)}
+            {reportData.recommendations.informative_feedback && 
+              renderSection('Informative Feedback', reportData.recommendations.informative_feedback)}
+          </div>
         </div>
       )}
     </div>
