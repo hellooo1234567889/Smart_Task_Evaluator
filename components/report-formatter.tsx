@@ -14,41 +14,53 @@ interface ReportData {
   }
 }
 
+// Safely split narrative + JS function code
 function splitOutCode(text: string) {
-  // Try to find JS function code between ```
-  const fenceIndex = text.indexOf('```')
+  // First try fenced blocks ``````
+  const fenceIndex = text.indexOf('```
   if (fenceIndex !== -1) {
-    // Strip first ``````
     const afterFence = text.slice(fenceIndex + 3)
-    const secondFence = afterFence.lastIndexOf('```
-    const code = secondFence !== -1
-      ? afterFence.slice(0, secondFence).replace(/^javascript\s*/i, '')
-      : afterFence
+    const secondFence = afterFence.lastIndexOf('```')
+    let inner = afterFence
+    if (secondFence !== -1) {
+      inner = afterFence.slice(0, secondFence)
+    }
+    // Remove optional language label like "javascript "
+    inner = inner.replace(/^javascript\s*/i, '')
+
     const before = text.slice(0, fenceIndex).trim()
-    const after = secondFence !== -1
-      ? afterFence.slice(secondFence + 3).trim()
-      : ''
-    return { before, code: code.trim(), after }
+    const after =
+      secondFence !== -1
+        ? afterFence.slice(secondFence + 3).trim()
+        : ''
+
+    return { before, code: inner.trim(), after }
   }
 
-  // Fallback: grab the first "function ... }" block
-  const fnMatch = text.match(/function\s+[a-zA-Z0-9_]+\s*\([^)]*\)\s*\{[\s\S]*?\}/)
-  if (fnMatch) {
+  // Fallback: first "function ... }" block
+  const fnMatch = text.match(
+    /function\s+[a-zA-Z0-9_]+\s*\([^)]*\)\s*\{[\s\S]*?\}/
+  )
+  if (fnMatch && fnMatch.index !== undefined) {
     const before = text.slice(0, fnMatch.index).trim()
-    const code = fnMatch.trim()
-    const after = text.slice((fnMatch.index as number) + fnMatch.length).trim()
+    const code = fnMatch[0].trim()
+    const after = text
+      .slice(fnMatch.index + fnMatch[0].length)
+      .trim()
     return { before, code, after }
   }
 
   return { before: text.trim(), code: '', after: '' }
 }
 
-const Section = ({ title, content }: { title: string; content: string }) => {
+function Section({ title, content }: { title: string; content: string }) {
   const { before, code, after } = splitOutCode(content)
 
   return (
     <div className="mb-6">
-      <h3 className="text-base font-semibold text-cyan-300 mb-3">{title}</h3>
+      <h3 className="text-base font-semibold text-cyan-300 mb-3">
+        {title}
+      </h3>
 
       {before && (
         <p className="text-sm text-slate-100/90 mb-3 leading-relaxed">
@@ -77,10 +89,15 @@ const Section = ({ title, content }: { title: string; content: string }) => {
 
 export function ReportFormatter({ jsonReport }: { jsonReport: string }) {
   let reportData: ReportData
+
   try {
     reportData = JSON.parse(jsonReport)
   } catch {
-    return <p className="text-red-400 text-sm">Error parsing report data</p>
+    return (
+      <p className="text-red-400 text-sm">
+        Error parsing report data
+      </p>
+    )
   }
 
   return (
@@ -89,7 +106,10 @@ export function ReportFormatter({ jsonReport }: { jsonReport: string }) {
         <Section title="Code Quality" content={reportData.code_quality} />
       )}
       {reportData.best_practices && (
-        <Section title="Best Practices" content={reportData.best_practices} />
+        <Section
+          title="Best Practices"
+          content={reportData.best_practices}
+        />
       )}
       {reportData.performance && (
         <Section title="Performance" content={reportData.performance} />
@@ -119,7 +139,9 @@ export function ReportFormatter({ jsonReport }: { jsonReport: string }) {
             {reportData.recommendations.informative_feedback && (
               <Section
                 title="Informative Feedback"
-                content={reportData.recommendations.informative_feedback}
+                content={
+                  reportData.recommendations.informative_feedback
+                }
               />
             )}
           </div>
