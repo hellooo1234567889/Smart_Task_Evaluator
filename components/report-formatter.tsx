@@ -14,46 +14,71 @@ interface ReportData {
   }
 }
 
-// Safely split narrative + JS function code
+// Very simple parser: look for the word "function" and the next closing brace.
 function splitOutCode(text: string) {
-  // First try fenced blocks ``````
-  const fenceIndex = text.indexOf('```
-  if (fenceIndex !== -1) {
-    const afterFence = text.slice(fenceIndex + 3)
-    const secondFence = afterFence.lastIndexOf('```')
-    let inner = afterFence
-    if (secondFence !== -1) {
-      inner = afterFence.slice(0, secondFence)
-    }
-    // Remove optional language label like "javascript "
-    inner = inner.replace(/^javascript\s*/i, '')
+  // Try fenced block first: look for "```
+  const firstFence = text.indexOf('```')
+  if (firstFence !== -1) {
+    const afterFirst = text.slice(firstFence + 3)
+    const secondFence = afterFirst.indexOf('```
 
-    const before = text.slice(0, fenceIndex).trim()
+    let inner = afterFirst
+    if (secondFence !== -1) {
+      inner = afterFirst.slice(0, secondFence)
+    }
+
+    // Drop optional leading language token like "javascript "
+    inner = inner.trim()
+    if (inner.toLowerCase().startsWith('javascript ')) {
+      inner = inner.slice('javascript '.length)
+    }
+
+    const before = text.slice(0, firstFence).trim()
     const after =
       secondFence !== -1
-        ? afterFence.slice(secondFence + 3).trim()
+        ? afterFirst.slice(secondFence + 3).trim()
         : ''
 
-    return { before, code: inner.trim(), after }
+    return { before, code: inner, after }
   }
 
-  // Fallback: first "function ... }" block
-  const fnMatch = text.match(
-    /function\s+[a-zA-Z0-9_]+\s*\([^)]*\)\s*\{[\s\S]*?\}/
-  )
-  if (fnMatch && fnMatch.index !== undefined) {
-    const before = text.slice(0, fnMatch.index).trim()
-    const code = fnMatch[0].trim()
-    const after = text
-      .slice(fnMatch.index + fnMatch[0].length)
-      .trim()
-    return { before, code, after }
+  // Fallback: plain "function ..." block
+  const fnIndex = text.indexOf('function')
+  if (fnIndex !== -1) {
+    const before = text.slice(0, fnIndex).trim()
+    const rest = text.slice(fnIndex)
+
+    // Naive brace-matching to find the end of the function
+    let openBraces = 0
+    let endIndex = -1
+    for (let i = 0; i < rest.length; i++) {
+      const ch = rest[i]
+      if (ch === '{') openBraces++
+      if (ch === '}') {
+        openBraces--
+        if (openBraces === 0) {
+          endIndex = i
+          break
+        }
+      }
+    }
+
+    if (endIndex !== -1) {
+      const code = rest.slice(0, endIndex + 1).trim()
+      const after = rest.slice(endIndex + 1).trim()
+      return { before, code, after }
+    }
+
+    // If braces couldn’t be matched, just treat rest as code
+    return { before, code: rest.trim(), after: '' }
   }
 
+  // No code found
   return { before: text.trim(), code: '', after: '' }
 }
 
-function Section({ title, content }: { title: string; content: string }) {
+function Section(props: { title: string; content: string }) {
+  const { title, content } = props
   const { before, code, after } = splitOutCode(content)
 
   return (
@@ -89,7 +114,6 @@ function Section({ title, content }: { title: string; content: string }) {
 
 export function ReportFormatter({ jsonReport }: { jsonReport: string }) {
   let reportData: ReportData
-
   try {
     reportData = JSON.parse(jsonReport)
   } catch {
