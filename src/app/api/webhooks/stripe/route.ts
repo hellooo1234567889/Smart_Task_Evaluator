@@ -4,11 +4,10 @@ import Stripe from "stripe"
 import { createClient } from "@supabase/supabase-js"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  // Use the apiVersion that matches your installed stripe types
   apiVersion: "2025-02-24.acacia",
 })
 
-// Use service role for admin operations
+// Service role supabase admin client
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -21,7 +20,6 @@ export async function POST(request: Request) {
     return new NextResponse("Missing signature", { status: 400 })
   }
 
-  // Read raw body as ArrayBuffer -> Buffer (recommended by Stripe)
   let bodyBuffer: Buffer
   try {
     const ab = await request.arrayBuffer()
@@ -31,7 +29,6 @@ export async function POST(request: Request) {
     return new NextResponse("Invalid body", { status: 400 })
   }
 
-  // Verify signature & construct event
   let event: Stripe.Event
   try {
     event = stripe.webhooks.constructEvent(
@@ -45,7 +42,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    // handle relevant events
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session
@@ -62,12 +58,11 @@ export async function POST(request: Request) {
         })
 
         if (!evaluation_id) {
-          // Log and return 200 to acknowledge event (avoid infinite retries)
-          console.warn("Webhook: checkout.session.completed missing evaluation_id in metadata")
-          break
+          console.warn("Webhook: missing evaluation_id in session metadata")
+          break // acknowledge so Stripe won't retry endlessly
         }
 
-        // Update evaluation row to mark it paid
+        // Update evaluation to paid
         const { error: evalError } = await supabaseAdmin
           .from("evaluations")
           .update({
@@ -79,11 +74,11 @@ export async function POST(request: Request) {
 
         if (evalError) {
           console.error("Webhook: failed to update evaluations:", evalError)
-          // Return 500 so Stripe retries — only do this for DB write failures
+          // return 500 so Stripe will retry later
           return new NextResponse("DB update failed", { status: 500 })
         }
 
-        // Optionally update payments table if you store a payment record
+        // Optionally update payments table if payment_id exists
         if (payment_id) {
           const { error: payErr } = await supabaseAdmin
             .from("payments")
@@ -94,38 +89,29 @@ export async function POST(request: Request) {
             })
             .eq("id", payment_id)
 
-          if (payErr) {
-            console.error("Webhook: failed to update payments:", payErr)
-            // don't fail the whole webhook for payments table issues; log it
-          }
+          if (payErr) console.error("Webhook: failed to update payments:", payErr)
         }
 
         break
       }
 
+      // Log other events, do not fail
       case "payment_intent.succeeded":
-      case "charge.succeeded": {
-        // Optional handling; log for now
-        console.log(`Webhook: received ${event.type}`, {
-          id: (event.data.object as any).id,
-        })
+      case "charge.succeeded":
+        console.log("Webhook: event", event.type, (event.data.object as any).id)
         break
-      }
 
       default:
-        // We intentionally ignore other events to keep the webhook fast.
-        console.log("Webhook: unhandled event type", event.type)
+        console.log("Webhook: unhandled event", event.type)
     }
 
-    // Acknowledge receipt
     return new NextResponse("ok", { status: 200 })
   } catch (err) {
-    console.error("Webhook: unexpected processing error:", err)
+    console.error("Webhook processing error:", err)
     return new NextResponse("server error", { status: 500 })
   }
 }
 
-// Fallback for non-POST methods (Stripe uses POST)
 export async function GET() {
   return new NextResponse("Method Not Allowed", { status: 405 })
 }
