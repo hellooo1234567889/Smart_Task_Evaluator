@@ -14,77 +14,114 @@ interface ReportData {
   }
 }
 
+function splitOutCode(text: string) {
+  // Try to find JS function code between ```
+  const fenceIndex = text.indexOf('```')
+  if (fenceIndex !== -1) {
+    // Strip first ``````
+    const afterFence = text.slice(fenceIndex + 3)
+    const secondFence = afterFence.lastIndexOf('```
+    const code = secondFence !== -1
+      ? afterFence.slice(0, secondFence).replace(/^javascript\s*/i, '')
+      : afterFence
+    const before = text.slice(0, fenceIndex).trim()
+    const after = secondFence !== -1
+      ? afterFence.slice(secondFence + 3).trim()
+      : ''
+    return { before, code: code.trim(), after }
+  }
+
+  // Fallback: grab the first "function ... }" block
+  const fnMatch = text.match(/function\s+[a-zA-Z0-9_]+\s*\([^)]*\)\s*\{[\s\S]*?\}/)
+  if (fnMatch) {
+    const before = text.slice(0, fnMatch.index).trim()
+    const code = fnMatch.trim()
+    const after = text.slice((fnMatch.index as number) + fnMatch.length).trim()
+    return { before, code, after }
+  }
+
+  return { before: text.trim(), code: '', after: '' }
+}
+
+const Section = ({ title, content }: { title: string; content: string }) => {
+  const { before, code, after } = splitOutCode(content)
+
+  return (
+    <div className="mb-6">
+      <h3 className="text-base font-semibold text-cyan-300 mb-3">{title}</h3>
+
+      {before && (
+        <p className="text-sm text-slate-100/90 mb-3 leading-relaxed">
+          {before}
+        </p>
+      )}
+
+      {code && (
+        <div className="bg-[#020617] border border-slate-700/60 rounded-xl p-4 mb-3 shadow-lg">
+          <pre className="overflow-x-auto">
+            <code className="block font-mono text-sm text-slate-100 leading-relaxed whitespace-pre">
+              {code}
+            </code>
+          </pre>
+        </div>
+      )}
+
+      {after && (
+        <p className="text-sm text-slate-100/90 leading-relaxed">
+          {after}
+        </p>
+      )}
+    </div>
+  )
+}
+
 export function ReportFormatter({ jsonReport }: { jsonReport: string }) {
   let reportData: ReportData
-  
   try {
     reportData = JSON.parse(jsonReport)
-  } catch (error) {
-    return <p className="text-red-400">Error parsing report data</p>
-  }
-
-  const extractCodeBlock = (text: string) => {
-    const codeMatch = text.match(/``````/)
-    if (codeMatch) {
-      return {
-        before: text.substring(0, codeMatch.index),
-        code: codeMatch[2].trim(),
-        language: codeMatch[1] || 'javascript',
-        after: text.substring(codeMatch.index! + codeMatch[0].length)
-      }
-    }
-    return null
-  }
-
-  const renderSection = (title: string, content: string) => {
-    const codeBlock = extractCodeBlock(content)
-    
-    return (
-      <div key={title} className="mb-6">
-        <h3 className="text-base font-semibold text-cyan-300 mb-3">{title}</h3>
-        {codeBlock ? (
-          <>
-            {codeBlock.before && (
-              <p className="text-sm text-slate-100/90 mb-4 leading-relaxed">
-                {codeBlock.before.trim()}
-              </p>
-            )}
-            <div className="bg-[#0f172a] border border-slate-700/50 rounded-xl p-5 mb-4 shadow-lg">
-              <pre className="overflow-x-auto">
-                <code className="text-sm text-slate-100 font-mono leading-relaxed block">
-                  {codeBlock.code}
-                </code>
-              </pre>
-            </div>
-            {codeBlock.after && codeBlock.after.trim() && (
-              <p className="text-sm text-slate-100/90 leading-relaxed">
-                {codeBlock.after.trim()}
-              </p>
-            )}
-          </>
-        ) : (
-          <p className="text-sm text-slate-100/90 leading-relaxed">{content}</p>
-        )}
-      </div>
-    )
+  } catch {
+    return <p className="text-red-400 text-sm">Error parsing report data</p>
   }
 
   return (
     <div className="space-y-6">
-      {reportData.code_quality && renderSection('Code Quality', reportData.code_quality)}
-      {reportData.best_practices && renderSection('Best Practices', reportData.best_practices)}
-      {reportData.performance && renderSection('Performance', reportData.performance)}
-      {reportData.readability && renderSection('Readability', reportData.readability)}
-      {reportData.security_considerations && renderSection('Security Considerations', reportData.security_considerations)}
-      
+      {reportData.code_quality && (
+        <Section title="Code Quality" content={reportData.code_quality} />
+      )}
+      {reportData.best_practices && (
+        <Section title="Best Practices" content={reportData.best_practices} />
+      )}
+      {reportData.performance && (
+        <Section title="Performance" content={reportData.performance} />
+      )}
+      {reportData.readability && (
+        <Section title="Readability" content={reportData.readability} />
+      )}
+      {reportData.security_considerations && (
+        <Section
+          title="Security Considerations"
+          content={reportData.security_considerations}
+        />
+      )}
+
       {reportData.recommendations && (
         <div className="mt-8">
-          <h3 className="text-lg font-semibold text-cyan-300 mb-4">Recommendations</h3>
-          <div className="space-y-6 pl-2">
-            {reportData.recommendations.improved_function && 
-              renderSection('Improved Function', reportData.recommendations.improved_function)}
-            {reportData.recommendations.informative_feedback && 
-              renderSection('Informative Feedback', reportData.recommendations.informative_feedback)}
+          <h3 className="text-lg font-semibold text-cyan-300 mb-4">
+            Recommendations
+          </h3>
+          <div className="space-y-6 pl-1">
+            {reportData.recommendations.improved_function && (
+              <Section
+                title="Improved Function"
+                content={reportData.recommendations.improved_function}
+              />
+            )}
+            {reportData.recommendations.informative_feedback && (
+              <Section
+                title="Informative Feedback"
+                content={reportData.recommendations.informative_feedback}
+              />
+            )}
           </div>
         </div>
       )}
