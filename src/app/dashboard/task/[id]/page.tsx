@@ -2,7 +2,6 @@
 
 export const dynamic = 'force-dynamic'
 
-
 import { useEffect, useState, use } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
@@ -18,6 +17,7 @@ import { toast } from 'sonner'
 import { ArrowLeft, Lock, CheckCircle, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { loadStripe } from '@stripe/stripe-js'
+import { ReportFormatter } from '@/components/report-formatter'
 
 interface Evaluation {
   id: string
@@ -266,11 +266,7 @@ export default function TaskDetailPage({
                   </CardHeader>
                   <CardContent>
                     {evaluation.is_paid ? (
-                      <div className="prose prose-sm max-w-none prose-invert">
-                        <p className="whitespace-pre-wrap text-xs sm:text-sm text-slate-50">
-                          {evaluation.full_report}
-                        </p>
-                      </div>
+                      <ReportFormatter jsonReport={evaluation.full_report} />
                     ) : (
                       <div className="text-center py-8">
                         <Lock className="w-12 h-12 mx-auto text-slate-300 mb-4" />
