@@ -24,7 +24,6 @@ export function ReportFormatter({ jsonReport }: { jsonReport: string }) {
   }
 
   const extractCodeBlock = (text: string) => {
-    // Updated regex to handle code blocks with or without newline after opening backticks
     const codeMatch = text.match(/``````/)
     if (codeMatch) {
       return {
@@ -42,19 +41,21 @@ export function ReportFormatter({ jsonReport }: { jsonReport: string }) {
     
     return (
       <div key={title} className="mb-6">
-        <h3 className="text-base font-semibold text-cyan-300 mb-2">{title}</h3>
+        <h3 className="text-base font-semibold text-cyan-300 mb-3">{title}</h3>
         {codeBlock ? (
           <>
             {codeBlock.before && (
-              <p className="text-sm text-slate-100/90 mb-3 leading-relaxed">
+              <p className="text-sm text-slate-100/90 mb-4 leading-relaxed">
                 {codeBlock.before.trim()}
               </p>
             )}
-            <pre className="bg-slate-950/70 border border-slate-800 rounded-lg p-4 overflow-x-auto mb-3">
-              <code className="text-xs sm:text-sm text-slate-100 font-mono">
-                {codeBlock.code}
-              </code>
-            </pre>
+            <div className="bg-[#0f172a] border border-slate-700/50 rounded-xl p-5 mb-4 shadow-lg">
+              <pre className="overflow-x-auto">
+                <code className="text-sm text-slate-100 font-mono leading-relaxed block">
+                  {codeBlock.code}
+                </code>
+              </pre>
+            </div>
             {codeBlock.after && codeBlock.after.trim() && (
               <p className="text-sm text-slate-100/90 leading-relaxed">
                 {codeBlock.after.trim()}
@@ -77,8 +78,8 @@ export function ReportFormatter({ jsonReport }: { jsonReport: string }) {
       {reportData.security_considerations && renderSection('Security Considerations', reportData.security_considerations)}
       
       {reportData.recommendations && (
-        <div className="mt-6">
-          <h3 className="text-base font-semibold text-cyan-300 mb-4">Recommendations</h3>
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold text-cyan-300 mb-4">Recommendations</h3>
           <div className="space-y-6 pl-2">
             {reportData.recommendations.improved_function && 
               renderSection('Improved Function', reportData.recommendations.improved_function)}
