@@ -14,159 +14,103 @@ interface ReportData {
   }
 }
 
-// Very simple parser: look for the word "function" and the next closing brace.
-function splitOutCode(text: string) {
-  // Try fenced block first: look for "```
-  const firstFence = text.indexOf('```')
-  if (firstFence !== -1) {
-    const afterFirst = text.slice(firstFence + 3)
-    const secondFence = afterFirst.indexOf('```
-
-    let inner = afterFirst
-    if (secondFence !== -1) {
-      inner = afterFirst.slice(0, secondFence)
+function extractCode(text: string) {
+  const parts = text.split('```
+  
+  if (parts.length >= 3) {
+    const before = parts.trim()
+    let code = parts.trim()[1]
+    const after = parts.trim()
+    
+    if (code.startsWith('javascript')) {
+      code = code.substring(10).trim()
     }
-
-    // Drop optional leading language token like "javascript "
-    inner = inner.trim()
-    if (inner.toLowerCase().startsWith('javascript ')) {
-      inner = inner.slice('javascript '.length)
-    }
-
-    const before = text.slice(0, firstFence).trim()
-    const after =
-      secondFence !== -1
-        ? afterFirst.slice(secondFence + 3).trim()
-        : ''
-
-    return { before, code: inner, after }
+    
+    return { before, code, after }
   }
-
-  // Fallback: plain "function ..." block
-  const fnIndex = text.indexOf('function')
-  if (fnIndex !== -1) {
-    const before = text.slice(0, fnIndex).trim()
-    const rest = text.slice(fnIndex)
-
-    // Naive brace-matching to find the end of the function
-    let openBraces = 0
-    let endIndex = -1
-    for (let i = 0; i < rest.length; i++) {
-      const ch = rest[i]
-      if (ch === '{') openBraces++
-      if (ch === '}') {
-        openBraces--
-        if (openBraces === 0) {
-          endIndex = i
-          break
-        }
+  
+  const fnStart = text.indexOf('function')
+  if (fnStart === -1) {
+    return { before: text, code: '', after: '' }
+  }
+  
+  const before = text.substring(0, fnStart).trim()
+  let braceCount = 0
+  let fnEnd = -1
+  
+  for (let i = fnStart; i < text.length; i++) {
+    if (text[i] === '{') braceCount++
+    if (text[i] === '}') {
+      braceCount--
+      if (braceCount === 0) {
+        fnEnd = i + 1
+        break
       }
     }
-
-    if (endIndex !== -1) {
-      const code = rest.slice(0, endIndex + 1).trim()
-      const after = rest.slice(endIndex + 1).trim()
-      return { before, code, after }
-    }
-
-    // If braces couldn’t be matched, just treat rest as code
-    return { before, code: rest.trim(), after: '' }
   }
-
-  // No code found
-  return { before: text.trim(), code: '', after: '' }
+  
+  if (fnEnd === -1) {
+    return { before, code: text.substring(fnStart), after: '' }
+  }
+  
+  const code = text.substring(fnStart, fnEnd).trim()
+  const after = text.substring(fnEnd).trim()
+  
+  return { before, code, after }
 }
 
-function Section(props: { title: string; content: string }) {
-  const { title, content } = props
-  const { before, code, after } = splitOutCode(content)
-
+function Section({ title, content }: { title: string; content: string }) {
+  const { before, code, after } = extractCode(content)
+  
   return (
     <div className="mb-6">
-      <h3 className="text-base font-semibold text-cyan-300 mb-3">
-        {title}
-      </h3>
-
+      <h3 className="text-base font-semibold text-cyan-300 mb-3">{title}</h3>
+      
       {before && (
-        <p className="text-sm text-slate-100/90 mb-3 leading-relaxed">
-          {before}
-        </p>
+        <p className="text-sm text-slate-100/90 mb-3 leading-relaxed">{before}</p>
       )}
-
+      
       {code && (
         <div className="bg-[#020617] border border-slate-700/60 rounded-xl p-4 mb-3 shadow-lg">
           <pre className="overflow-x-auto">
-            <code className="block font-mono text-sm text-slate-100 leading-relaxed whitespace-pre">
-              {code}
-            </code>
+            <code className="block font-mono text-sm text-slate-100 leading-relaxed whitespace-pre">{code}</code>
           </pre>
         </div>
       )}
-
+      
       {after && (
-        <p className="text-sm text-slate-100/90 leading-relaxed">
-          {after}
-        </p>
+        <p className="text-sm text-slate-100/90 leading-relaxed">{after}</p>
       )}
     </div>
   )
 }
 
 export function ReportFormatter({ jsonReport }: { jsonReport: string }) {
-  let reportData: ReportData
+  let data: ReportData
+  
   try {
-    reportData = JSON.parse(jsonReport)
+    data = JSON.parse(jsonReport)
   } catch {
-    return (
-      <p className="text-red-400 text-sm">
-        Error parsing report data
-      </p>
-    )
+    return <p className="text-red-400 text-sm">Error parsing report</p>
   }
-
+  
   return (
     <div className="space-y-6">
-      {reportData.code_quality && (
-        <Section title="Code Quality" content={reportData.code_quality} />
-      )}
-      {reportData.best_practices && (
-        <Section
-          title="Best Practices"
-          content={reportData.best_practices}
-        />
-      )}
-      {reportData.performance && (
-        <Section title="Performance" content={reportData.performance} />
-      )}
-      {reportData.readability && (
-        <Section title="Readability" content={reportData.readability} />
-      )}
-      {reportData.security_considerations && (
-        <Section
-          title="Security Considerations"
-          content={reportData.security_considerations}
-        />
-      )}
-
-      {reportData.recommendations && (
+      {data.code_quality && <Section title="Code Quality" content={data.code_quality} />}
+      {data.best_practices && <Section title="Best Practices" content={data.best_practices} />}
+      {data.performance && <Section title="Performance" content={data.performance} />}
+      {data.readability && <Section title="Readability" content={data.readability} />}
+      {data.security_considerations && <Section title="Security Considerations" content={data.security_considerations} />}
+      
+      {data.recommendations && (
         <div className="mt-8">
-          <h3 className="text-lg font-semibold text-cyan-300 mb-4">
-            Recommendations
-          </h3>
+          <h3 className="text-lg font-semibold text-cyan-300 mb-4">Recommendations</h3>
           <div className="space-y-6 pl-1">
-            {reportData.recommendations.improved_function && (
-              <Section
-                title="Improved Function"
-                content={reportData.recommendations.improved_function}
-              />
+            {data.recommendations.improved_function && (
+              <Section title="Improved Function" content={data.recommendations.improved_function} />
             )}
-            {reportData.recommendations.informative_feedback && (
-              <Section
-                title="Informative Feedback"
-                content={
-                  reportData.recommendations.informative_feedback
-                }
-              />
+            {data.recommendations.informative_feedback && (
+              <Section title="Informative Feedback" content={data.recommendations.informative_feedback} />
             )}
           </div>
         </div>
