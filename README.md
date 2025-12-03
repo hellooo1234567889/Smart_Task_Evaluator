@@ -158,7 +158,7 @@ npm start
 ## 📺 Demo & Assignment Links
 
 - **Live App:** https://smart-task-evaluator-sable.vercel.app/
-- **GitHub Repo:** https://github.com/hellooo1234567889/Smart_Task_Evaluator.git
+- **GitHub Repo:** https://github.com/pankaj22-7/Smart_Task_Evaluator.git
 - **Screen Recording (Drive):** https://drive.google.com/...
 - **Supabase Schema Screenshot:** `docs/supabase-schema.png`
 - **Payment Proof:** `docs/payment-proof.png`
